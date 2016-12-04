@@ -783,6 +783,29 @@ class CScript(bytes):
             raise ValueError("redeemScript exceeds max allowed size; P2SH output would be unspendable")
         return CScript([OP_HASH160, bitcoin.core.Hash160(self), OP_EQUAL])
 
+    def to_nested_v0_p2wsh_scritpSig(self, serialize=True, checksize=True):
+        """Create version 0 P2WSH scriptSig.
+        The script is serialized by default, in this case the output script is
+        a single push."""
+        if checksize:
+            if len(self) > MAX_SCRIPT_SIZE:
+                raise ValueError("redeemScript exceeds max allowed size; P2SH output would be unspendable")
+            for (_, data, _) in self.raw_iter():
+                if data and len(data) > MAX_SCRIPT_ELEMENT_SIZE:
+                    raise ValueError("redeemScript stack element exceeds max allowed size; P2SH output would be unspendable")
+        scriptSig = CScript([OP_0, Hash256(self)])  # OP_0 -> Version 0 of segwit
+        return CScript([scriptSig]) if serialize else scriptSig
+
+    def hash160_nested_p2wsh_scriptSig(self, checksize=True):
+        """The hash is produced with the non serialized version of scriptSig"""
+        return bitcoin.core.Hash160(self.to_nested_v0_p2wsh_scritpSig(serialize=False, checksize=checksize))
+
+    def to_nested_v0_p2wsh_scriptPubKey(self, checksize=True):
+        """Create P2SH scriptPubKey from this redeemScript for P2WSH transactions
+        checksize - Check that every element into the stack do not exceed 520 bytes
+                    and the total length of the script cannot exceed 10K bytes"""
+        return CScript([OP_HASH160, self.hash160_nested_p2wsh_scriptSig(checksize), OP_EQUAL])
+
     def GetSigOpCount(self, fAccurate):
         """Get the SigOp count.
 

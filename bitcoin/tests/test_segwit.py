@@ -107,4 +107,9 @@ class Test_Segwit(unittest.TestCase):
                 0, SIGHASH_SINGLE|SIGHASH_ANYONECANPAY, value, SIGVERSION_WITNESS_V0), 
             x('511e8e52ed574121fc1b654970395502128263f62662e076dc6baf05c2e6a99b'))
         
-
+    def test_p2wsh_utilities(self):
+        self.assertTrue(CScript([]).to_nested_v0_p2wsh_scriptPubKey().is_witness_v0_nested_scripthash())
+        self.assertEqual(CScript([]).to_nested_v0_p2wsh_scritpSig(serialize=False).witness_version(), 0)
+        script = CScript([]).to_nested_v0_p2wsh_scritpSig(serialize=True)
+        self.assertTrue(script.is_push_only())
+        self.assertEqual(len(list(script)), 1)
